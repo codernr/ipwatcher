@@ -28,13 +28,22 @@ namespace IPWatcher
 
         private const string fileName = "config.json";
 
+        private static StorageFile file;
+
         public static async Task CreateInstance()
         {
-            var file = await ApplicationData.Current.LocalFolder.GetFileAsync(fileName);
+            file = await ApplicationData.Current.LocalFolder.GetFileAsync(fileName);
 
             var content = await FileIO.ReadTextAsync(file);
 
             Instance = JsonConvert.DeserializeObject<Config>(content);
+        }
+
+        public static async Task SaveInstance()
+        {
+            var content = JsonConvert.SerializeObject(Instance);
+
+            await FileIO.WriteTextAsync(file, content);
         }
     }
 }
