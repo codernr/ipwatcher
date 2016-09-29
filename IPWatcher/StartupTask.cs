@@ -36,7 +36,7 @@ namespace IPWatcher
         {
             var ip = await Policy
                 .HandleResult<string>(s => s == null)
-                .WaitAndRetryAsync<string>(Config.Instance.RetryCount, this.RetryExponential, this.LogRetry)
+                .WaitAndRetryAsync<string>(Config.Instance.RetryCount, this.RetryExponential, this.LogIPRetry)
                 .ExecuteAsync(this.GetExternalIP);
 
             // if the ip is still null after the retries, wait for the next cycle
@@ -46,14 +46,26 @@ namespace IPWatcher
                 return;
             }
 
+            // no IP address change, no notification
             if (ip == Config.Instance.IpAddress)
             {
                 Debug.WriteLine("IP address hasn't changed, returning");
                 return;
             }
 
-            await this.SendMail(ip);
+            var policyResult = await Policy
+                .Handle<Exception>()
+                .WaitAndRetryAsync(Config.Instance.RetryCount, this.RetryExponential, this.LogMailRetry)
+                .ExecuteAndCaptureAsync(() => this.SendMail(ip));
 
+            // email send fail, wait for next cycle
+            if (policyResult.Outcome == OutcomeType.Failure)
+            {
+                Debug.WriteLine("All mail send attempt failed, wait for next cycle");
+                return;
+            }
+
+            // success, save new IP to config
             Config.Instance.IpAddress = ip;
 
             await Config.SaveInstance();
@@ -83,6 +95,7 @@ namespace IPWatcher
 
         private async Task SendMail(string ip)
         {
+            throw new Exception();
             using (SmtpClient client = new SmtpClient(Config.Instance.SmtpServer, Config.Instance.Port, Config.Instance.Ssl, Config.Instance.Username, Config.Instance.Password))
             {
                 EmailMessage message = new EmailMessage();
@@ -100,9 +113,14 @@ namespace IPWatcher
             return TimeSpan.FromSeconds(Math.Pow(Config.Instance.RetryBaseSeconds, retryAttempt));
         }
 
-        private async Task LogRetry(DelegateResult<string> result, TimeSpan time, int retryCount, Context onRetry)
+        private async Task LogIPRetry(DelegateResult<string> result, TimeSpan time, int retryCount, Context onRetry)
         {
-            Debug.WriteLine("{0}. Failed attempt, retrying in {1}", retryCount, time);
+            Debug.WriteLine("{0}. Failed IP check attempt, retrying in {1}", retryCount, time);
+        }
+
+        private async Task LogMailRetry(Exception ex, TimeSpan time)
+        {
+            Debug.WriteLine("Failed email send attempt, retrying in {0}", time);
         }
     }
 }
