@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Net.Http;
 using System.Threading.Tasks;
+using LightBuzz.SMTP;
 using Windows.ApplicationModel.Background;
+using Windows.ApplicationModel.Email;
+using Windows.Web.Http;
 
 namespace IPWatcher
 {
@@ -33,7 +35,7 @@ namespace IPWatcher
 
                 await Config.SaveInstance();
 
-                // email send goes here
+                await this.SendMail();
             }
         }
 
@@ -56,6 +58,20 @@ namespace IPWatcher
             }
 
             return body;
+        }
+
+        private async Task SendMail()
+        {
+            using (SmtpClient client = new SmtpClient(Config.Instance.SmtpServer, Config.Instance.Port, Config.Instance.Ssl, Config.Instance.Username, Config.Instance.Password))
+            {
+                EmailMessage message = new EmailMessage();
+
+                message.To.Add(new EmailRecipient(Config.Instance.Recipient));
+                message.Subject = Config.Instance.EmailSubject;
+                message.Body = string.Format(Config.Instance.EmailBodyFormat, Config.Instance.DeviceName, Config.Instance.IpAddress);
+
+                await client.SendMail(message);
+            }
         }
     }
 }

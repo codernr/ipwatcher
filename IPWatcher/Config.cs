@@ -56,6 +56,17 @@ namespace IPWatcher
         public string Password { get; set; }
 
         /// <summary>
+        /// Subject of notification email (preconfigured)
+        /// </summary>
+        public string EmailSubject { get; set; }
+
+        /// <summary>
+        /// Formatted string of email body with DeviceName and IP placeholders (preconfigured)
+        /// e.g. "The IP address of {0} has changed to {1}"
+        /// </summary>
+        public string EmailBodyFormat { get; set; }
+
+        /// <summary>
         /// External ip of the device
         /// </summary>
         public string IpAddress { get; set; }
