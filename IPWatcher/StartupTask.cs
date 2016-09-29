@@ -47,7 +47,7 @@ namespace IPWatcher
 
             try
             {
-                var response = await client.GetAsync(new Uri("http://icanhazip.com"));
+                var response = await client.GetAsync(new Uri(Config.Instance.ExternalIPCheckAddress));
                 response.EnsureSuccessStatusCode();
                 body = await response.Content.ReadAsStringAsync();
             }
