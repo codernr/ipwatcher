@@ -23,6 +23,20 @@ namespace IPWatcher
             await Config.CreateInstance();
         }
 
+        private async Task Check()
+        {
+            var ip = await this.GetExternalIP();
+
+            if (ip != Config.Instance.IpAddress)
+            {
+                Config.Instance.IpAddress = ip;
+
+                await Config.SaveInstance();
+
+                // email send goes here
+            }
+        }
+
         private async Task<string> GetExternalIP()
         {
             HttpClient client = new HttpClient();
