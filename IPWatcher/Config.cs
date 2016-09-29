@@ -67,6 +67,18 @@ namespace IPWatcher
         public string EmailBodyFormat { get; set; }
 
         /// <summary>
+        /// Exponential backoff retry count
+        /// </summary>
+        public int RetryCount { get; set; }
+
+        /// <summary>
+        /// Exponential backoff base
+        /// e. g. if you set this to 2 and there is a connection exception, retry comes in
+        /// 2, 4, 8, ..., 2 ^ RetryCount seconds
+        /// </summary>
+        public int RetryBaseSeconds { get; set; }
+
+        /// <summary>
         /// External ip of the device
         /// </summary>
         public string IpAddress { get; set; }

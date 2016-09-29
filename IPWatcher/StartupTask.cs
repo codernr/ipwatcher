@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using LightBuzz.SMTP;
+using Polly;
 using Windows.ApplicationModel.Background;
 using Windows.ApplicationModel.Email;
 using Windows.System.Threading;
@@ -33,16 +34,29 @@ namespace IPWatcher
 
         private async void Check(ThreadPoolTimer timer = null)
         {
-            var ip = await this.GetExternalIP();
+            var ip = await Policy
+                .HandleResult<string>(s => s == null)
+                .WaitAndRetryAsync<string>(Config.Instance.RetryCount, this.RetryExponential, this.LogRetry)
+                .ExecuteAsync(this.GetExternalIP);
 
-            if (ip != Config.Instance.IpAddress)
+            // if the ip is still null after the retries, wait for the next cycle
+            if (ip == null)
             {
-                Config.Instance.IpAddress = ip;
-
-                await Config.SaveInstance();
-
-                await this.SendMail();
+                Debug.WriteLine("All IP check attempt failed, wait for next cycle");
+                return;
             }
+
+            if (ip == Config.Instance.IpAddress)
+            {
+                Debug.WriteLine("IP address hasn't changed, returning");
+                return;
+            }
+
+            await this.SendMail(ip);
+
+            Config.Instance.IpAddress = ip;
+
+            await Config.SaveInstance();
         }
 
         private async Task<string> GetExternalIP()
@@ -67,7 +81,7 @@ namespace IPWatcher
             return body;
         }
 
-        private async Task SendMail()
+        private async Task SendMail(string ip)
         {
             using (SmtpClient client = new SmtpClient(Config.Instance.SmtpServer, Config.Instance.Port, Config.Instance.Ssl, Config.Instance.Username, Config.Instance.Password))
             {
@@ -75,10 +89,20 @@ namespace IPWatcher
 
                 message.To.Add(new EmailRecipient(Config.Instance.Recipient));
                 message.Subject = Config.Instance.EmailSubject;
-                message.Body = string.Format(Config.Instance.EmailBodyFormat, Config.Instance.DeviceName, Config.Instance.IpAddress);
+                message.Body = string.Format(Config.Instance.EmailBodyFormat, Config.Instance.DeviceName, ip);
 
                 await client.SendMail(message);
             }
+        }
+
+        private TimeSpan RetryExponential(int retryAttempt)
+        {
+            return TimeSpan.FromSeconds(Math.Pow(Config.Instance.RetryBaseSeconds, retryAttempt));
+        }
+
+        private async Task LogRetry(DelegateResult<string> result, TimeSpan time, int retryCount, Context onRetry)
+        {
+            Debug.WriteLine("{0}. Failed attempt, retrying in {1}", retryCount, time);
         }
     }
 }
