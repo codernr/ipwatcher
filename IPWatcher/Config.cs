@@ -89,7 +89,7 @@ namespace IPWatcher
 
         public static async Task SaveInstance()
         {
-            var content = JsonConvert.SerializeObject(Instance);
+            var content = JsonConvert.SerializeObject(Instance, Formatting.Indented);
 
             await FileIO.WriteTextAsync(file, content);
         }

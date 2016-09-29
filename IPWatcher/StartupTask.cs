@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using LightBuzz.SMTP;
 using Windows.ApplicationModel.Background;
@@ -59,6 +56,7 @@ namespace IPWatcher
                 var response = await client.GetAsync(new Uri(Config.Instance.ExternalIPCheckAddress));
                 response.EnsureSuccessStatusCode();
                 body = await response.Content.ReadAsStringAsync();
+                body = body.TrimEnd('\n');
             }
             catch (Exception ex)
             {
