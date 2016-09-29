@@ -11,6 +11,8 @@ namespace IPWatcher
         #region Config items
         public string DeviceName { get; set; }
 
+        public int UpdateHours { get; set; }
+
         public string IpAddress { get; set; }
 
         public string SmtpServer { get; set; }
