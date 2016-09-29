@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using LightBuzz.SMTP;
 using Windows.ApplicationModel.Background;
 using Windows.ApplicationModel.Email;
+using Windows.System.Threading;
 using Windows.Web.Http;
 
 namespace IPWatcher
@@ -18,14 +19,22 @@ namespace IPWatcher
         public void Run(IBackgroundTaskInstance taskInstance)
         {
             this.deferral = taskInstance.GetDeferral();
+
+            this.Initialize();
         }
 
         private async Task Initialize()
         {
             await Config.CreateInstance();
+
+            // running check for the first time
+            this.Check();
+
+            // and then start the timer to call it periodically
+            ThreadPoolTimer.CreatePeriodicTimer(this.Check, TimeSpan.FromHours(Config.Instance.UpdateHours));
         }
 
-        private async Task Check()
+        private async void Check(ThreadPoolTimer timer = null)
         {
             var ip = await this.GetExternalIP();
 
