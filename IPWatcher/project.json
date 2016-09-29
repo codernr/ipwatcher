@@ -1,5 +1,6 @@
 ﻿{
   "dependencies": {
+    "lightbuzz-smtp": "1.5.3",
     "Microsoft.NETCore.UniversalWindowsPlatform": "5.2.2",
     "Newtonsoft.Json": "9.0.1"
   },
